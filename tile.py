@@ -18,15 +18,23 @@ type_color_map = {
     TileType.FOREST: TileColor.DARK_GREEN
 }
 
+type_id_map = {
+    TileType.LAND: 0,
+    TileType.WATER: 1,
+    TileType.FOREST: 2
+}
+
 @dataclass
 class Tile:
     type: TileType
     x: int
     y: int
     _color: TileColor = None
+    id: int = None
 
     def __post_init__(self):
         self._color = type_color_map[self.type]
+        self.id = type_id_map[self.type]
 
     @property
     def color(self):
@@ -35,3 +43,6 @@ class Tile:
     def set_type(self, type: TileType):
         self.type = type
         self._color = type_color_map[type]
+
+    def get_id(self) -> int:
+        return self.id
