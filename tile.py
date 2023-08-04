@@ -43,6 +43,7 @@ class Tile:
     def set_type(self, type: TileType):
         self.type = type
         self._color = type_color_map[type]
+        self.id = type_id_map[type]
 
     def get_id(self) -> int:
         return self.id
