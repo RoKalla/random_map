@@ -1,78 +1,77 @@
 import pygame
 import random
 import tile
+from perlin_noise import PerlinNoise
 
 
-ROWS = 100
-COLS = 100
+COLS = ROWS = 100
 CELL_SIZE = 10
 WIDTH = COLS * CELL_SIZE
 HEIGHT = ROWS * CELL_SIZE
 
-# Colors for each cell (you can modify this as per your choice)
-cell_colors = [(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)) for _ in range(ROWS * COLS)]
+MAP_SIZE = (ROWS, COLS)
+FOREST_DENSITY = 0.0
+WATER_THRESHOLD = 0.0
+SEED = random.randint(0, 9999999)
 
-def make_grid2(rows, cols) -> list:
+
+def make_grid(heightmap) -> list:
+    width = len(heightmap)
+    height = len(heightmap[0])
 
     grid = []
-    for x in range(rows):
+    for y in range(height):
         row = []
-        for y in range(cols):
-            new_type = random.randint(0, 1)
-            #print(new_type)
-            if new_type == 0:
-                new_tile = tile.Tile(tile.TileType.LAND, x, y)
-            else: #1
-                new_tile = tile.Tile(tile.TileType.WATER,x ,y)
-            row.append(new_tile)
-
+        for x in range(width):
+            if heightmap[y][x] < WATER_THRESHOLD:
+                row.append(tile.Tile(tile.TileType.WATER, x, y))
+            else:
+                row.append(tile.Tile(tile.TileType.LAND, x, y))
         grid.append(row)
 
-    return grid
-
-def make_grid(rows, cols) -> list:
-    grid = []
-    for x in range(rows):
-        row = []
-        for y in range(cols):
-            row.append(tile.Tile(tile.TileType.WATER, x, y))
-        grid.append(row)
-
-    # Starting point for the island
-    islands = 5
-    x = 0
-    while x < islands:
-        start_x = random.randint(0, rows - 1)
-        start_y = random.randint(0, cols - 1)
-
-        # Perform Random Walk to create the island
-        stack = [(start_x, start_y)]
-        grid[start_x][start_y] = tile.Tile(tile.TileType.LAND, start_x, start_y)
-
-        while stack:
-            x, y = stack.pop()
-            # Randomly select one of the neighbors to explore
-            neighbors = [(x + dx, y + dy) for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]]
-            random.shuffle(neighbors)
-            for nx, ny in neighbors:
-                if 0 <= nx < rows and 0 <= ny < cols and grid[nx][ny].type == tile.TileType.WATER:
-                    grid[nx][ny] = tile.Tile(tile.TileType.LAND, nx, ny)
-                    stack.append((nx, ny))
-                    x = x + 1
-                    break  # Stop exploring neighbors once we find a valid one
-
+    num_forests = int(width * height * FOREST_DENSITY)
+    for _ in range(num_forests):
+        forest_x = random.randint(0, width - 1)
+        forest_y = random.randint(0, height - 1)
+        if grid[forest_y][forest_x].type == tile.TileType.LAND:
+            grid[forest_y][forest_x].set_type(tile.TileType.FOREST)
 
     return grid
         
 
-# Function to draw the grid
 def draw_grid(screen, grid):
     for col in grid:
         for cell in col:
             pygame.draw.rect(screen, cell.color, (cell.y * CELL_SIZE, cell.x * CELL_SIZE, CELL_SIZE, CELL_SIZE))
 
 
-# Main function
+def make_height_map() -> list:
+    noise1 = PerlinNoise(octaves=3, seed=SEED)
+    noise2 = PerlinNoise(octaves=6, seed=SEED)
+    noise3 = PerlinNoise(octaves=12, seed=SEED)
+    noise4 = PerlinNoise(octaves=24, seed=SEED)
+
+    xpix, ypix = MAP_SIZE
+
+    pic = []
+    for i in range(xpix):
+        row = []
+        for j in range(ypix):
+            noise_val = noise1([i/xpix, j/ypix])
+            noise_val += 0.5 * noise2([i/xpix, j/ypix])
+            noise_val += 0.25 * noise3([i/xpix, j/ypix])
+            noise_val += 0.125 * noise4([i/xpix, j/ypix])
+
+            row.append(noise_val)
+        pic.append(row)
+
+    return pic
+
+
+def save_to_file() -> None:
+    pass
+
+
 def main():
     pygame.init()
 
@@ -80,7 +79,8 @@ def main():
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("2D Grid with Colors")
 
-    grid = make_grid(ROWS, COLS)
+    height_map = make_height_map()
+    grid = make_grid(height_map)
 
     running = True
     while running:
